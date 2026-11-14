@@ -549,7 +549,7 @@ final class WriterTest extends TestCase
         self::assertStringContainsString($link('https://example.com/#!/page', 'fragment'), $sheetXml);
         self::assertStringContainsString($link('#B5', 'same sheet'), $sheetXml);
         self::assertStringContainsString($link("#'O''Brien!s'.B2:D10", 'other sheet'), $sheetXml);
-        self::assertStringContainsString($link('#Plain.A1', 'two').$link('#Plain.A1', 'lines'), $sheetXml);
+        self::assertStringContainsString($link("#'Plain'.A1", 'two').$link("#'Plain'.A1", 'lines'), $sheetXml);
         self::assertStringNotContainsString('Not written for ODS', $sheetXml);
     }
 

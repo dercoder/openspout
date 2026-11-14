@@ -13,10 +13,13 @@ final readonly class StringCell extends Cell
 {
     public ?Hyperlink $hyperlink;
 
-    /** Target of the hyperlink, same as (string) $hyperlink */
+    /** Target of the hyperlink: the string as given, or (string) $hyperlink for a Hyperlink object */
     public ?string $hyperlinkUrl;
 
     private string $value;
+
+    /** The hyperlink as given, passed on by the with*() methods so that $hyperlinkUrl is kept as is */
+    private Hyperlink|string|null $givenHyperlink;
 
     public function __construct(
         string $value,
@@ -26,8 +29,9 @@ final readonly class StringCell extends Cell
     ) {
         parent::__construct($style, $comment);
         $this->value = $value;
-        $this->hyperlink = \is_string($hyperlinkUrl) ? Hyperlink::toUrl($hyperlinkUrl) : $hyperlinkUrl;
-        $this->hyperlinkUrl = null === $this->hyperlink ? null : (string) $this->hyperlink;
+        $this->givenHyperlink = $hyperlinkUrl;
+        $this->hyperlink = \is_string($hyperlinkUrl) ? Hyperlink::fromString($hyperlinkUrl) : $hyperlinkUrl;
+        $this->hyperlinkUrl = null === $hyperlinkUrl ? null : (string) $hyperlinkUrl;
     }
 
     public function getValue(): string
@@ -37,27 +41,27 @@ final readonly class StringCell extends Cell
 
     public function withValue(string $value): self
     {
-        return new self($value, $this->style, $this->comment, $this->hyperlink);
+        return new self($value, $this->style, $this->comment, $this->givenHyperlink);
     }
 
     public function withStyle(Style $style): static
     {
-        return new self($this->value, $style, $this->comment, $this->hyperlink);
+        return new self($this->value, $style, $this->comment, $this->givenHyperlink);
     }
 
     public function withoutStyle(): static
     {
-        return new self($this->value, null, $this->comment, $this->hyperlink);
+        return new self($this->value, null, $this->comment, $this->givenHyperlink);
     }
 
     public function withComment(Comment $comment): static
     {
-        return new self($this->value, $this->style, $comment, $this->hyperlink);
+        return new self($this->value, $this->style, $comment, $this->givenHyperlink);
     }
 
     public function withoutComment(): static
     {
-        return new self($this->value, $this->style, null, $this->hyperlink);
+        return new self($this->value, $this->style, null, $this->givenHyperlink);
     }
 
     public function withHyperlink(Hyperlink|string $hyperlinkUrl): static

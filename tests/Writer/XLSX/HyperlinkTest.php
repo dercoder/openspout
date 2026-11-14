@@ -91,6 +91,33 @@ final class HyperlinkTest extends TestCase
         $zip->close();
     }
 
+    public function testHyperlinkStrings(): void
+    {
+        $writer = new Writer(new Options(tempFolder: (new TestUsingResource())->getTempFolderPath()));
+        $writer->openToFile($this->outputFilePath);
+
+        $writer->addRow(new Row([
+            Cell::fromValue('unquoted sheet', null, null, '#Sheet2!A1'),
+            Cell::fromValue('defined name', null, null, '#MyRange'),
+            Cell::fromValue('explicit url', null, null, Hyperlink::toUrl('#not-a-location')),
+        ]));
+
+        $writer->close();
+
+        self::assertStringContainsString(
+            '<hyperlinks>'
+            .'<hyperlink ref="A1" location="\'Sheet2\'!A1"/>'
+            .'<hyperlink ref="B1" location="MyRange"/>'
+            .'<hyperlink ref="C1" r:id="rId_hyperlink1"/>'
+            .'</hyperlinks>',
+            (string) file_get_contents("zip://{$this->outputFilePath}#xl/worksheets/sheet1.xml")
+        );
+        self::assertStringContainsString(
+            'Target="#not-a-location" TargetMode="External"',
+            (string) file_get_contents("zip://{$this->outputFilePath}#xl/worksheets/_rels/sheet1.xml.rels")
+        );
+    }
+
     public function testHyperlinkTooltips(): void
     {
         $writer = new Writer(new Options(tempFolder: (new TestUsingResource())->getTempFolderPath()));

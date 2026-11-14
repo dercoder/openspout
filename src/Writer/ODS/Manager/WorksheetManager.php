@@ -235,15 +235,18 @@ final readonly class WorksheetManager implements WorksheetManagerInterface
 
     private function getLinkStartTag(Hyperlink $hyperlink): string
     {
-        $target = (string) $hyperlink;
+        $reference = $hyperlink->reference;
+        $quotedSheetName = $hyperlink->getQuotedSheetName();
 
-        // links within the workbook separate sheet and cell with "." instead of "!",
-        // e.g. #'Order Details'.A42. The last "!" is the separator, as sheet names may contain "!" too.
-        $separatorPosition = strrpos($target, '!');
-        if (str_starts_with($target, '#') && false !== $separatorPosition) {
-            $target = substr_replace($target, '.', $separatorPosition, 1);
+        if (null === $reference) {
+            $href = (string) $hyperlink;
+        } elseif (null === $quotedSheetName) {
+            $href = "#{$reference}";
+        } else {
+            // OpenDocument separates sheet and cell with "." instead of "!"
+            $href = "#{$quotedSheetName}.{$reference}";
         }
 
-        return \sprintf('<text:a xlink:href="%s" xlink:type="simple">', $this->stringsEscaper->escape($target));
+        return \sprintf('<text:a xlink:href="%s" xlink:type="simple">', $this->stringsEscaper->escape($href));
     }
 }

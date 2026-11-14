@@ -59,9 +59,11 @@ final class HyperlinkManager
             $tooltip = $cell->hyperlink->tooltip;
             $tooltipAttribute = null === $tooltip ? '' : \sprintf(' tooltip="%s"', $this->escaper->escape($tooltip));
 
-            if (str_starts_with($cell->hyperlinkUrl, '#')) {
-                $location = $this->escaper->escape(substr($cell->hyperlinkUrl, 1));
-                fwrite($hyperlinksFilePointer, \sprintf('<hyperlink ref="%s" location="%s"%s/>', $cellRef, $location, $tooltipAttribute));
+            $reference = $cell->hyperlink->reference;
+            if (null !== $reference) {
+                $quotedSheetName = $cell->hyperlink->getQuotedSheetName();
+                $location = null === $quotedSheetName ? $reference : "{$quotedSheetName}!{$reference}";
+                fwrite($hyperlinksFilePointer, \sprintf('<hyperlink ref="%s" location="%s"%s/>', $cellRef, $this->escaper->escape($location), $tooltipAttribute));
 
                 continue;
             }

@@ -163,6 +163,21 @@ final class CellTest extends TestCase
         self::assertNull((new StringCell('test', null))->hyperlinkUrl);
     }
 
+    public function testStringCellKeepsHyperlinkStringAsGiven(): void
+    {
+        $cell = new StringCell('test', null, null, '#Sheet2!A1');
+
+        self::assertSame('#Sheet2!A1', $cell->hyperlinkUrl);
+        self::assertSame('#Sheet2!A1', $cell->withValue('other')->hyperlinkUrl);
+        self::assertSame('#Sheet2!A1', $cell->withStyle(new Style())->hyperlinkUrl);
+        self::assertSame('#Sheet2!A1', $cell->withoutStyle()->hyperlinkUrl);
+        self::assertSame('#Sheet2!A1', $cell->withComment(new Comment())->hyperlinkUrl);
+        self::assertSame('#Sheet2!A1', $cell->withoutComment()->hyperlinkUrl);
+        self::assertNotNull($cell->hyperlink);
+        self::assertSame('Sheet2', $cell->hyperlink->sheetName);
+        self::assertSame('A1', $cell->hyperlink->reference);
+    }
+
     public function testStringCellKeepsHyperlinkTooltip(): void
     {
         $hyperlink = Hyperlink::toUrl('https://example.com')->withTooltip('Open');
