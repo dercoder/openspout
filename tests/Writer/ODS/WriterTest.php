@@ -12,6 +12,7 @@ use DOMNode;
 use finfo;
 use OpenSpout\Common\Entity\Cell;
 use OpenSpout\Common\Entity\Cell\ImageCell;
+use OpenSpout\Common\Entity\Hyperlink;
 use OpenSpout\Common\Entity\Row;
 use OpenSpout\Common\Exception\InvalidArgumentException;
 use OpenSpout\Common\Exception\IOException;
@@ -528,6 +529,45 @@ final class WriterTest extends TestCase
 
         $this->expectException(UnsupportedTypeException::class);
         $writer->addRow(new Row([new ImageCell($this->testImagePath, 1, 1)]));
+    }
+
+    public function testWriteHyperlinks(): void
+    {
+        $fileName = 'test_hyperlinks.ods';
+        $this->writeToODSFile([new Row([
+            Cell::fromValue('website', null, null, Hyperlink::toUrl('https://example.com/?a=1&b=2')->withTooltip('Not written for ODS')),
+            Cell::fromValue('fragment', null, null, 'https://example.com/#!/page'),
+            Cell::fromValue('same sheet', null, null, Hyperlink::toCell('B5')),
+            Cell::fromValue('other sheet', null, null, Hyperlink::toCell('B2:D10', "O'Brien!s")),
+            Cell::fromValue("two\nlines", null, null, '#Plain!A1'),
+        ])], $fileName);
+
+        $link = static fn (string $href, string $text): string => "<text:p><text:a xlink:href=\"{$href}\" xlink:type=\"simple\">{$text}</text:a></text:p>";
+
+        $sheetXml = $this->getSheetXmlNodeAsString($fileName, 0);
+        self::assertStringContainsString($link('https://example.com/?a=1&amp;b=2', 'website'), $sheetXml);
+        self::assertStringContainsString($link('https://example.com/#!/page', 'fragment'), $sheetXml);
+        self::assertStringContainsString($link('#B5', 'same sheet'), $sheetXml);
+        self::assertStringContainsString($link("#'O''Brien!s'.B2:D10", 'other sheet'), $sheetXml);
+        self::assertStringContainsString($link('#Plain.A1', 'two').$link('#Plain.A1', 'lines'), $sheetXml);
+        self::assertStringNotContainsString('Not written for ODS', $sheetXml);
+    }
+
+    public function testCellsWithHyperlinksAreNotRepeated(): void
+    {
+        $fileName = 'test_hyperlinks_not_repeated.ods';
+        $this->writeToODSFile([new Row([
+            Cell::fromValue('same'),
+            Cell::fromValue('same', null, null, Hyperlink::toCell('A1')),
+            Cell::fromValue('same', null, null, Hyperlink::toCell('A1')),
+            Cell::fromValue('same'),
+            Cell::fromValue('same'),
+        ])], $fileName);
+
+        $sheetXml = $this->getSheetXmlNodeAsString($fileName, 0);
+        self::assertSame(4, substr_count($sheetXml, '<table:table-cell '));
+        self::assertSame(2, substr_count($sheetXml, '<text:a '));
+        self::assertSame(1, substr_count($sheetXml, 'table:number-columns-repeated="2"'));
     }
 
     public function testCompressionLevelAcceptsZeroToNine(): void

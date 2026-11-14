@@ -594,7 +594,7 @@ A TextRun can be styled using the following methods:
 
 ## Cell hyperlinks
 
-The XLSX writer has support for adding hyperlinks to cells. Hyperlinks can be added to `StringCell` (or when using 
+The XLSX and ODS writers have support for adding hyperlinks to cells. Hyperlinks can be added to `StringCell` (or when using 
 `Cell::fromValue` with a string value).
 
 ```php
@@ -660,7 +660,7 @@ $cellWithHyperlink = $cell->withHyperlink(Hyperlink::toCell('A42', 'Order Detail
 
 ### Hyperlink tooltips
 
-Any `Hyperlink` can have a tooltip, which is shown when hovering the link:
+Any `Hyperlink` can have a tooltip, which is shown when hovering the link. Tooltips are only written by the XLSX writer:
 
 ```php
 $cell = Cell::fromValue('Order 4711', null, null, Hyperlink::toCell('A42', 'Order Details')->withTooltip('Show order details'));

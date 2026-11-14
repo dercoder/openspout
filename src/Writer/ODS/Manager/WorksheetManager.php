@@ -7,6 +7,7 @@ namespace OpenSpout\Writer\ODS\Manager;
 use DateTimeImmutable;
 use DateTimeInterface;
 use OpenSpout\Common\Entity\Cell;
+use OpenSpout\Common\Entity\Hyperlink;
 use OpenSpout\Common\Entity\Row;
 use OpenSpout\Common\Exception\InvalidArgumentException;
 use OpenSpout\Common\Exception\IOException;
@@ -108,7 +109,8 @@ final readonly class WorksheetManager implements WorksheetManagerInterface
             $cell = $cells[$currentCellIndex];
             $nextCell = $cells[$nextCellIndex] ?? null;
 
-            if (null === $nextCell || $cell->getValue() !== $nextCell->getValue() || $cell->style !== $nextCell->style) {
+            // cells with a hyperlink are never repeated, so no link gets lost
+            if (null === $nextCell || $cell->getValue() !== $nextCell->getValue() || $cell->style !== $nextCell->style || self::hasHyperlink($cell) || self::hasHyperlink($nextCell)) {
                 $styleId = $this->styleManager->registerCellStyle($cell);
 
                 $data .= $this->getCellXMLWithStyle($cell, $styleId, $currentCellIndex, $nextCellIndex);
@@ -179,9 +181,13 @@ final readonly class WorksheetManager implements WorksheetManagerInterface
         if ($cell instanceof Cell\StringCell) {
             $data .= ' office:value-type="string" calcext:value-type="string">';
 
+            $linkStartTag = null === $cell->hyperlink ? '' : $this->getLinkStartTag($cell->hyperlink);
+            $linkEndTag = null === $cell->hyperlink ? '' : '</text:a>';
+
             $cellValueLines = explode("\n", $cell->getValue());
             foreach ($cellValueLines as $cellValueLine) {
-                $data .= '<text:p>'.$this->stringsEscaper->escape($cellValueLine).'</text:p>';
+                $escapedLine = $this->stringsEscaper->escape($cellValueLine);
+                $data .= "<text:p>{$linkStartTag}{$escapedLine}{$linkEndTag}</text:p>";
             }
 
             $data .= '</table:table-cell>';
@@ -220,5 +226,24 @@ final readonly class WorksheetManager implements WorksheetManagerInterface
         }
 
         return $data;
+    }
+
+    private static function hasHyperlink(Cell $cell): bool
+    {
+        return $cell instanceof Cell\StringCell && null !== $cell->hyperlink;
+    }
+
+    private function getLinkStartTag(Hyperlink $hyperlink): string
+    {
+        $target = (string) $hyperlink;
+
+        // links within the workbook separate sheet and cell with "." instead of "!",
+        // e.g. #'Order Details'.A42. The last "!" is the separator, as sheet names may contain "!" too.
+        $separatorPosition = strrpos($target, '!');
+        if (str_starts_with($target, '#') && false !== $separatorPosition) {
+            $target = substr_replace($target, '.', $separatorPosition, 1);
+        }
+
+        return \sprintf('<text:a xlink:href="%s" xlink:type="simple">', $this->stringsEscaper->escape($target));
     }
 }
